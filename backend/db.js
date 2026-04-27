@@ -4,7 +4,7 @@ import mysql from 'mysql2/promise';
 const initialConnection = await mysql.createConnection({
   host: 'localhost',
   user: 'root',
-  password: 'GHOSTBUSTER313'
+  password: 'ROOTroot'
 });
 
 await initialConnection.query('CREATE DATABASE IF NOT EXISTS gym');
@@ -14,7 +14,7 @@ await initialConnection.end();
 const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: 'GHOSTBUSTER313',
+  password: 'ROOTroot',
   database: 'gym',
   waitForConnections: true,
   connectionLimit: 10,
@@ -112,6 +112,16 @@ try {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS exercise_gifs_cache (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ai_exercise_name VARCHAR(255) NOT NULL UNIQUE,
+      api_exercise_name VARCHAR(255),
+      gif_url LONGTEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS progress_tracking (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
@@ -178,6 +188,13 @@ try {
     if (!progressColumnNames.includes('workout_days')) {
       await pool.query('ALTER TABLE progress_tracking ADD COLUMN workout_days INT DEFAULT NULL AFTER experience_level');
       console.log('Added workout_days column to progress_tracking');
+    }
+
+    const [cacheColumns] = await pool.query('SHOW COLUMNS FROM exercise_gifs_cache');
+    const gifUrlCol = cacheColumns.find(c => c.Field === 'gif_url');
+    if (gifUrlCol && gifUrlCol.Type.includes('varchar')) {
+      await pool.query('ALTER TABLE exercise_gifs_cache MODIFY gif_url LONGTEXT NOT NULL');
+      console.log('Modified gif_url column to LONGTEXT in exercise_gifs_cache');
     }
   } catch (migrationErr) {
     console.error('Migration error:', migrationErr);

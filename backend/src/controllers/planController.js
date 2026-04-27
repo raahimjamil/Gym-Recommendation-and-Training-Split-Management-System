@@ -27,33 +27,11 @@ export const checkPlanEligibility = async (req, res) => {
         );
 
         // No plans yet → new user, always eligible
-        if (historyRows.length === 0) {
-            return res.status(200).json({
-                can_generate: true,
-                is_new_user: true,
-                days_remaining: 0,
-                message: 'You can generate your first plan!'
-            });
-        }
-
-        const lastPlanDate = historyRows[0].created_at;
-        const days = daysSince(lastPlanDate);
-
-        if (days < 7) {
-            const daysRemaining = 7 - days;
-            return res.status(200).json({
-                can_generate: false,
-                is_new_user: false,
-                days_remaining: daysRemaining,
-                message: `You cannot generate a new plan yet. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`
-            });
-        }
-
         return res.status(200).json({
-            can_generate: true,
-            is_new_user: false,
-            days_remaining: 0,
-            message: 'You can generate a new plan!'
+            canGenerate: true,
+            isNewUser: false,
+            daysRemaining: 0,
+            message: 'You can generate a new plan at will!'
         });
 
     } catch (error) {
@@ -127,20 +105,7 @@ export const generateCompletePlan = async (req, res) => {
 
         const isNewUser = historyRows.length === 0;
 
-        // 5. Enforce 7-day cooldown for returning users
-        if (!isNewUser) {
-            const lastPlanDate = historyRows[0].created_at;
-            const days = daysSince(lastPlanDate);
-
-            if (days < 7) {
-                const daysRemaining = 7 - days;
-                return res.status(429).json({
-                    can_generate: false,
-                    days_remaining: daysRemaining,
-                    message: `Cannot generate a new plan yet. ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining.`
-                });
-            }
-        }
+        // 5. Cooldown removed as requested by the user, allowing recalibration on will.
 
         // 6. Build base fitness payload (shared for both new and existing)
         const fitnessData = {

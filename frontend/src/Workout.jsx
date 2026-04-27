@@ -4,6 +4,7 @@ import { ChevronRight, Dumbbell, Calendar, Layout, Utensils, Sparkles, CheckCirc
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from './components/home/Header';
 import apiClient from './api/apiClient';
+import ExerciseGif from './components/ExerciseGif';
 
 const GOALS = [
   { key: 'Fat Loss', emoji: '🔥', desc: 'Burn fat & lean out', dbKey: 'weight_loss' },
@@ -29,14 +30,14 @@ function Workout() {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [todayActiveDay, setTodayActiveDay] = useState(null);
   const [eligibilityInfo, setEligibilityInfo] = useState(null);
+  const [selectedExerciseModal, setSelectedExerciseModal] = useState(null);
 
   const getCurrentDayIndexClient = () => (new Date().getDay() + 6) % 7;
 
   const isDayUnlocked = (dayIndex) => {
-    if (dayIndex > currentDayIndex) return false;
-    // If the user has already started a different day today, lock this one
-    if (todayActiveDay !== null && todayActiveDay !== dayIndex && !completedDays.includes(dayIndex)) return false;
-    return true;
+    if (dayIndex === 0) return true;
+    // Unlock if the immediate previous day is fully completed
+    return completedDays.includes(dayIndex - 1);
   };
 
   const handleExerciseComplete = async (dayIdx, exIdx, totalExercises) => {
@@ -511,7 +512,7 @@ function Workout() {
                         return (
                           <div
                             key={idx}
-                            onClick={() => handleExerciseComplete(selectedDayIndex, idx, totalEx)}
+                            onClick={() => setSelectedExerciseModal({ ex, idx, dayIdx: selectedDayIndex, totalEx })}
                             className={`group flex items-center gap-4 p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 ${done
                               ? 'bg-purple-500/10 border-purple-500/30 shadow-purple-500/10 shadow-lg'
                               : 'bg-slate-800/20 border-white/5 hover:border-purple-500/30 hover:bg-slate-800/40'
@@ -772,6 +773,77 @@ function Workout() {
           </div>
         </div>
       )}
+
+      {/* Exercise Modal */}
+      {selectedExerciseModal && (() => {
+        const { ex, idx, dayIdx, totalEx } = selectedExerciseModal;
+        const done = completedExercises[`${dayIdx}-${idx}`];
+        return (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-300">
+            {/* Close layer */}
+            <div className="absolute inset-0 cursor-pointer" onClick={() => setSelectedExerciseModal(null)}></div>
+            
+            <div className="bg-slate-900 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-[2.5rem] border border-white/10 p-5 sm:p-6 shadow-2xl relative flex flex-col items-center">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+              
+              {/* GIF Section */}
+              <div className="w-full max-h-[35vh] sm:max-h-[50vh] aspect-square shrink-0 rounded-[1.5rem] overflow-hidden bg-white/5 mb-6 shadow-inner border border-white/5 flex items-center justify-center">
+                <ExerciseGif exerciseName={ex.name} />
+              </div>
+
+              {/* Title */}
+              <h3 className="text-2xl font-black text-white text-center mb-6 tracking-tight leading-tight">
+                {ex.name}
+              </h3>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-3 w-full mb-8">
+                <div className="flex flex-col items-center justify-center p-3 bg-slate-800/50 rounded-2xl border border-white/5">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Sets</span>
+                  <span className="text-xl font-black text-white">{ex.sets}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 bg-slate-800/50 rounded-2xl border border-white/5">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Reps</span>
+                  <span className="text-xl font-black text-white">{ex.reps}</span>
+                </div>
+                <div className="flex flex-col items-center justify-center p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                  <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Rest</span>
+                  <span className="text-lg font-black text-indigo-300">{ex.rest || '-'}</span>
+                </div>
+              </div>
+
+              {/* Complete Button */}
+              {done ? (
+                <button
+                  disabled
+                  className="w-full py-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-2xl font-black tracking-widest uppercase text-sm flex items-center justify-center gap-3"
+                >
+                  <CheckCircle2 className="w-5 h-5" /> Completed
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    await handleExerciseComplete(dayIdx, idx, totalEx);
+                    setSelectedExerciseModal(null);
+                  }}
+                  disabled={loading}
+                  className="w-full py-5 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-black tracking-widest uppercase text-sm flex items-center justify-center gap-3 transition-all shadow-xl shadow-purple-500/20 disabled:opacity-50"
+                >
+                  {loading ? 'SYNCING...' : 'MARK COMPLETE'}
+                </button>
+              )}
+
+              {/* Dismiss Button */}
+              <button
+                onClick={() => setSelectedExerciseModal(null)}
+                className="mt-4 text-slate-500 font-bold text-sm tracking-widest hover:text-white transition-colors"
+              >
+                DISMISS
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

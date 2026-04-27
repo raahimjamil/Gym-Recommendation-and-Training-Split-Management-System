@@ -263,28 +263,9 @@ export const completeWorkoutExercise = async (req, res) => {
             return res.status(400).json({ message: 'Invalid exercise completion payload' });
         }
 
-        const currentDayIdx = getCurrentDayIndex();
-        if (day > currentDayIdx) {
-            return res.status(403).json({ message: 'Future-day exercises are locked until their day arrives.' });
-        }
-
         const weekStartDate = getWeekStartDate().toISOString().split('T')[0];
         const today = new Date().toISOString().split('T')[0];
-
-        // One workout day per calendar day: block if user already exercised on a DIFFERENT day today
-        const [todayOtherDayRows] = await pool.query(
-            `SELECT DISTINCT day_index FROM workout_exercise_logs
-             WHERE user_id = ? AND DATE(completed_at) = ? AND day_index != ?
-             LIMIT 1`,
-            [userId, today, day]
-        );
-        if (todayOtherDayRows.length > 0) {
-            const activeDayNum = todayOtherDayRows[0].day_index + 1;
-            return res.status(403).json({
-                message: `You can only complete one workout day per calendar day. You already started Day ${activeDayNum} today. Come back tomorrow for the next day!`,
-                todayActiveDay: todayOtherDayRows[0].day_index,
-            });
-        }
+        const currentDayIdx = getCurrentDayIndex();
 
         await pool.query(
             `INSERT IGNORE INTO workout_exercise_logs (user_id, week_start_date, day_index, exercise_index)

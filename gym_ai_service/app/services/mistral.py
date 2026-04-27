@@ -148,6 +148,7 @@ RULES:
 2. Label days precisely: {day_labels}
 3. No rest days.
 4. Each entry MUST be unique.
+5. EXERCISE NAMES: Use ONLY basic, standard, and singular names (e.g., "Bicep Curl", "Squat", "Push Up"). Do NOT use plural forms (no "s" at the end) and avoid overly complex descriptors like "Seated Torso Twists" (use "Russian Twist" or "Twist" instead).
 
 Return ONLY JSON:
 {{
